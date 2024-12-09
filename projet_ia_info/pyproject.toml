@@ -10,6 +10,7 @@ python = "^3.13"
 transformers = "^4.47.0"
 numpy = "^2.2.0"
 matplotlib = "^3.9.3"
+protobuf = "^5.29.1"
 
 
 [build-system]
