@@ -11,6 +11,9 @@ transformers = "^4.47.0"
 numpy = "^2.2.0"
 matplotlib = "^3.9.3"
 protobuf = "^5.29.1"
+nltk = "^3.9.1"
+certifi = "^2024.8.30"
+scipy = "^1.14.1"
 
 
 [build-system]
