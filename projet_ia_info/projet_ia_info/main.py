@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import ssl
 import numpy as np
 from scipy.optimize import curve_fit
+import gzip
 
 
 # Fonction pour extraire la taille du vocabulaire
@@ -17,6 +18,13 @@ def extract_vocabulary_size(corpus):
 # Loi de Heaps
 def heaps_law(x, k, beta):
     return k * x**beta
+
+
+# Calculer le ratio de compression
+def measure_compression_ratio(corpus_text):
+    text_bytes = corpus_text.encode('utf-8')  # Convertir en bytes
+    compressed = gzip.compress(text_bytes)  # Compression avec gzip
+    return len(compressed) / len(text_bytes)  # Ratio de compression
 
 
 # Gestion des certificats SSL pour le téléchargement
@@ -64,7 +72,11 @@ def analyze_corpus(corpus_name, corpus_text, step_size=100000):
 
     print(f"Paramètres estimés (log-log) pour {corpus_name} : K = {k:.2f}, β = {beta:.2f}")
 
-    return corpus_sizes, vocab_sizes, k, beta
+    # Calculer le ratio de compression pour le corpus complet
+    compression_ratio = measure_compression_ratio(corpus_text)
+    print(f"Ratio de compression pour {corpus_name} : {compression_ratio:.2f}")
+
+    return corpus_sizes, vocab_sizes, k, beta, compression_ratio
 
 
 # Initialiser une figure pour afficher plusieurs corpus
@@ -81,9 +93,14 @@ corpora = {
     "Reuters (Journalistique)": ' '.join(reuters.words())
 }
 
+compression_ratios = {}
+
 for corpus_name, corpus_text in corpora.items():
-    corpus_sizes, vocab_sizes, k, beta = analyze_corpus(corpus_name, corpus_text)
+    corpus_sizes, vocab_sizes, k, beta, compression_ratio = analyze_corpus(corpus_name, corpus_text)
     
+    # Stocker le ratio de compression pour l'analyse globale
+    compression_ratios[corpus_name] = compression_ratio
+
     # Tracer les données réelles
     plt.loglog(corpus_sizes, vocab_sizes, marker='o', linestyle='-', label=f'{corpus_name} (Données réelles)')
     
@@ -98,3 +115,8 @@ plt.title('Comparaison de la loi de Heaps entre différents corpus')
 plt.legend()
 plt.grid(True)
 plt.show()
+
+# Afficher les ratios de compression pour chaque corpus
+print("\n--- Résumé des ratios de compression ---")
+for corpus_name, compression_ratio in compression_ratios.items():
+    print(f"{corpus_name} : Ratio de compression = {compression_ratio:.2f}")
