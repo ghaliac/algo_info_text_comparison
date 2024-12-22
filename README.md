@@ -1,4 +1,5 @@
-# algo_info_text_comparison
+# Heaps-Harden' Law: A Statistical Analysis Across Different Corpora
+
 ## Installation
 
 To run this project, you need to have [Poetry](https://python-poetry.org/) installed. If you don't have it installed, you can install it by following the instructions [here](https://python-poetry.org/docs/#installation).
@@ -7,8 +8,8 @@ To run this project, you need to have [Poetry](https://python-poetry.org/) insta
 
 1. Clone the repository:
     ```sh
-    git clone /Users/ghalia/Desktop/Telecom_IA/Algorithmic_Info/algo_info_text_comparison
-    cd algo_info_text_comparison
+    git clone https://github.com/ghaliac/algo_info_text_comparison.git
+    cd projet_ia_info
     ```
 
 2. Install the dependencies:
