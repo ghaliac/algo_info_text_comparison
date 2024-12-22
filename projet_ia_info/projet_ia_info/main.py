@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 from nltk.corpus import gutenberg, brown, reuters, stopwords
 from nltk.probability import FreqDist
+from scipy.stats import linregress
 import matplotlib.pyplot as plt
 import ssl
 import numpy as np
@@ -131,32 +132,53 @@ def analyze_corpus(corpus_name, corpus_text, step_size=100000):
 
     return corpus_sizes, vocab_sizes, k, beta, compression_ratio, entropy
 
+def zipf_linear_fit(x, a, b):
+    return a + b * x
+
 def analyze_zipf(corpus_name, corpus_text):
-    print(f"\n--- Analyse de la loi de Zipf pour : {corpus_name} ---")
-    words = nltk.word_tokenize(corpus_text)
-    fdist = FreqDist(words)
-    sorted_frequencies = sorted(fdist.values(), reverse=True)
-    ranks = np.arange(1, len(sorted_frequencies) + 1)
+    tokens = nltk.word_tokenize(corpus_text)
+    fdist = FreqDist(tokens)
+    frequencies = sorted(fdist.values(), reverse=True)[:100]  # Limiter aux 100 premiers rangs
+    
+    ranks = np.arange(1, len(frequencies) + 1)
+    log_ranks = np.log(ranks)
+    log_freqs = np.log(frequencies)
+    
+    # Utilisation de curve_fit pour ajuster la fonction linéaire
+    params, covariance = curve_fit(zipf_linear_fit, log_ranks, log_freqs)
+    a, b = params  # a est l'intercept, b est la pente
 
-    def inverse_fit(x, k):
-        return k / x
-
-    params, _ = curve_fit(inverse_fit, ranks, sorted_frequencies)
-    k = params[0]
-    print(f"Paramètre estimé pour {corpus_name} : k = {k:.2f}")
-
-    plt.figure(figsize=(8, 5))
-    max_rank = 100
-    plt.scatter(ranks[:max_rank], sorted_frequencies[:max_rank], alpha=0.6, label="Données réelles")
-    plt.plot(ranks[:max_rank], inverse_fit(ranks[:max_rank], *params), color='red', label=f"Ajustement : k = {k:.2f}")
-    plt.xlabel("Rang")
-    plt.ylabel("Fréquence")
-    plt.title(f"Loi de Zipf (linéaire) pour {corpus_name}")
+    # Prédiction à partir des paramètres ajustés
+    predicted_log_freqs = zipf_linear_fit(log_ranks, *params)
+    
+    # Calcul du score R2
+    residuals = log_freqs - predicted_log_freqs
+    ss_res = np.sum(residuals**2)
+    ss_tot = np.sum((log_freqs - np.mean(log_freqs))**2)
+    r2_score = 1 - (ss_res / ss_tot)
+    
+    # Tracer les résultats en échelle linéaire
+    plt.figure(figsize=(10, 6))
+    plt.scatter(ranks, frequencies, label='Données')
+    plt.plot(ranks, np.exp(predicted_log_freqs), 'r', label=f'Ligne ajustée (pour échelle loglog): pente={b:.2f}')
+    plt.xlabel('Rank')
+    plt.ylabel('Frequency')
+    plt.title(f'Analyse de la loi de Zipf {corpus_name}')
     plt.legend()
     plt.grid(True)
+    
+    # Ajouter les mots des 5 premiers rangs dans une boîte
+    most_common_words = fdist.most_common(5)
+    text = f"Top 5 mots pour {corpus_name}:\n" + "\n".join([f"{rank+1}. {word} ({freq})" for rank, (word, freq) in enumerate(most_common_words)])
+    plt.gca().text(0.95, 0.95, text, transform=plt.gca().transAxes, fontsize=10, verticalalignment='top',
+                   horizontalalignment='right', bbox=dict(facecolor='white', alpha=0.8, edgecolor='gray'))
+    
     plt.show()
+    
+    print(f"Intercept: {a}")
+    print(f"Slope: {b}")
+    print(f"R2 Score: {r2_score:.2f}")
 
-    return k
 
 # Ajouter les mots des 5 premiers rangs dans un encadré
 def add_top_words_box(ax, corpus_name, corpus_text, top_n=10):
@@ -261,52 +283,5 @@ print("\n--- Résumé des métriques ---")
 for corpus_name in corpora.keys():
     print(f"{corpus_name} : K = {results[corpus_name]['k']:.2f}, beta = {results[corpus_name]['beta']:.2f}, Ratio de compression = {compression_ratios[corpus_name]:.2f}, Entropie = {entropies[corpus_name]:.2f}")
 
-print("\n--- Constantes de Zipf (k) pour chaque corpus ---")
-for corpus_name, k in zipf_constants.items():
-    print(f"{corpus_name} : k = {k:.2f}")
 
 
-    # Liste des pages web à analyser
-urls = [
-    "https://en.wikipedia.org/wiki/Natural_language_processing",
-    "https://en.wikipedia.org/wiki/Artificial_intelligence",
-    "https://en.wikipedia.org/wiki/Machine_learning",
-    "https://en.wikipedia.org/wiki/Deep_learning"
-]
-
-
-
-# Ajout de l’analyse des contenus web
-for url in urls:
-    print(f"\nTraitement de l'URL : {url}")
-
-    # Extraire le texte de la page web
-    web_text = get_web_text(url)
-
-    # Vérifier si le texte est suffisamment long
-    if len(web_text) > 100:  # Vérifie si le texte est suffisant pour l’analyse
-        # Analyse de la loi de Heaps
-        corpus_sizes, vocab_sizes, k, beta, compression_ratio, entropy = analyze_corpus(url, web_text, step_size=1000)
-
-        print(f"\n--- Résultats pour {url} ---")
-        print(f"K (Heaps) : {k:.2f}, β : {beta:.2f}")
-        print(f"Ratio de compression : {compression_ratio:.2f}")
-        print(f"Entropie : {entropy:.2f}")
-
-        # Afficher la courbe de Heaps
-        plt.figure(figsize=(10, 6))
-        plt.plot(corpus_sizes, vocab_sizes, marker='o', linestyle='-', label='Données réelles')
-        fitted_vocab_sizes = [heaps_law(x, k, beta) for x in corpus_sizes]
-        plt.plot(corpus_sizes, fitted_vocab_sizes, linestyle='--', label=f'Ajustement : K={k:.2f}, β={beta:.2f}')
-        plt.xlabel('Taille du corpus')
-        plt.ylabel('Taille du vocabulaire')
-        plt.title(f"Loi de Heaps pour {url}")
-        plt.legend()
-        plt.grid(True)
-        plt.show()
-
-        # Analyse de la loi de Zipf
-        k_zipf = analyze_zipf(url, web_text)
-        print(f"Paramètre k (Zipf) : {k_zipf:.2f}")
-    else:
-        print(f"Texte insuffisant pour {url}")

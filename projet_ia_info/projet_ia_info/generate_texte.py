@@ -123,22 +123,51 @@ plt.legend()
 plt.grid(True)
 plt.show()
 
-print()
+def zipf_linear_fit(x, a, b):
+    return a + b * x
 
-# Tracer la loi de Zipf pour un texte synthétique de taille maximale
-def plot_zipf_law(text):
-    print("Tracé de la loi de Zipf...")
-    words = nltk.word_tokenize(text)
-    fdist = FreqDist(words)
-    ranks = range(1, len(fdist) + 1)
-    max_rank = 100
-    sorted_frequencies = sorted(fdist.values(), reverse=True)
-    plt.figure(figsize=(8, 6))
-    plt.plot(ranks[:max_rank], sorted_frequencies[:max_rank], marker='.', linestyle='None')
-    plt.title('Loi de Zipf du Texte Synthétique - Corpus Brown')
-    plt.xlabel('Rang du mot')
-    plt.ylabel('Fréquence')
+def analyze_zipf(corpus_name, corpus_text):
+    tokens = nltk.word_tokenize(corpus_text)
+    fdist = FreqDist(tokens)
+    frequencies = sorted(fdist.values(), reverse=True)[:100]  # Limiter aux 100 premiers rangs
+    
+    ranks = np.arange(1, len(frequencies) + 1)
+    log_ranks = np.log(ranks)
+    log_freqs = np.log(frequencies)
+    
+    # Utilisation de curve_fit pour ajuster la fonction linéaire
+    params, covariance = curve_fit(zipf_linear_fit, log_ranks, log_freqs)
+    a, b = params  # a est l'intercept, b est la pente
+
+    # Prédiction à partir des paramètres ajustés
+    predicted_log_freqs = zipf_linear_fit(log_ranks, *params)
+    
+    # Calcul du score R2
+    residuals = log_freqs - predicted_log_freqs
+    ss_res = np.sum(residuals**2)
+    ss_tot = np.sum((log_freqs - np.mean(log_freqs))**2)
+    r2_score = 1 - (ss_res / ss_tot)
+    
+    # Tracer les résultats en échelle linéaire
+    plt.figure(figsize=(10, 6))
+    plt.scatter(ranks, frequencies, label='Données')
+    plt.plot(ranks, np.exp(predicted_log_freqs), 'r', label=f'Ligne ajustée (pour échelle loglog): pente={b:.2f}')
+    plt.xlabel('Rank')
+    plt.ylabel('Frequency')
+    plt.title(f'Analyse de la loi de Zipf {corpus_name}')
+    plt.legend()
     plt.grid(True)
+    
+    # Ajouter les mots des 5 premiers rangs dans une boîte
+    most_common_words = fdist.most_common(5)
+    text = f"Top 5 mots pour {corpus_name}:\n" + "\n".join([f"{rank+1}. {word} ({freq})" for rank, (word, freq) in enumerate(most_common_words)])
+    plt.gca().text(0.95, 0.95, text, transform=plt.gca().transAxes, fontsize=10, verticalalignment='top',
+                   horizontalalignment='right', bbox=dict(facecolor='white', alpha=0.8, edgecolor='gray'))
+    
     plt.show()
+    
+    print(f"Intercept: {a}")
+    print(f"Slope: {b}")
+    print(f"R2 Score: {r2_score:.2f}")
 
-plot_zipf_law(synthetic_text)
+analyze_zipf("Synthetic Text", synthetic_text)
