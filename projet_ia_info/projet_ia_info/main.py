@@ -1,4 +1,6 @@
 import nltk
+import requests
+from bs4 import BeautifulSoup
 from nltk.corpus import gutenberg, brown, reuters, stopwords
 from nltk.probability import FreqDist
 import matplotlib.pyplot as plt
@@ -262,3 +264,49 @@ for corpus_name in corpora.keys():
 print("\n--- Constantes de Zipf (k) pour chaque corpus ---")
 for corpus_name, k in zipf_constants.items():
     print(f"{corpus_name} : k = {k:.2f}")
+
+
+    # Liste des pages web à analyser
+urls = [
+    "https://en.wikipedia.org/wiki/Natural_language_processing",
+    "https://en.wikipedia.org/wiki/Artificial_intelligence",
+    "https://en.wikipedia.org/wiki/Machine_learning",
+    "https://en.wikipedia.org/wiki/Deep_learning"
+]
+
+
+
+# Ajout de l’analyse des contenus web
+for url in urls:
+    print(f"\nTraitement de l'URL : {url}")
+
+    # Extraire le texte de la page web
+    web_text = get_web_text(url)
+
+    # Vérifier si le texte est suffisamment long
+    if len(web_text) > 100:  # Vérifie si le texte est suffisant pour l’analyse
+        # Analyse de la loi de Heaps
+        corpus_sizes, vocab_sizes, k, beta, compression_ratio, entropy = analyze_corpus(url, web_text, step_size=1000)
+
+        print(f"\n--- Résultats pour {url} ---")
+        print(f"K (Heaps) : {k:.2f}, β : {beta:.2f}")
+        print(f"Ratio de compression : {compression_ratio:.2f}")
+        print(f"Entropie : {entropy:.2f}")
+
+        # Afficher la courbe de Heaps
+        plt.figure(figsize=(10, 6))
+        plt.plot(corpus_sizes, vocab_sizes, marker='o', linestyle='-', label='Données réelles')
+        fitted_vocab_sizes = [heaps_law(x, k, beta) for x in corpus_sizes]
+        plt.plot(corpus_sizes, fitted_vocab_sizes, linestyle='--', label=f'Ajustement : K={k:.2f}, β={beta:.2f}')
+        plt.xlabel('Taille du corpus')
+        plt.ylabel('Taille du vocabulaire')
+        plt.title(f"Loi de Heaps pour {url}")
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+        # Analyse de la loi de Zipf
+        k_zipf = analyze_zipf(url, web_text)
+        print(f"Paramètre k (Zipf) : {k_zipf:.2f}")
+    else:
+        print(f"Texte insuffisant pour {url}")
