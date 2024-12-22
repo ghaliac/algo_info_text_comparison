@@ -169,6 +169,23 @@ def add_top_words_box(ax, corpus_name, corpus_text, top_n=10):
     ax.text(0.95, 0.95, text, transform=ax.transAxes, fontsize=10, verticalalignment='top',
             horizontalalignment='right', bbox=dict(facecolor='white', alpha=0.8, edgecolor='gray'))
 
+
+# Fonction pour récupérer et nettoyer le texte des pages web (utilisée dans l'ajout)
+def get_web_text(url):
+    """
+    Récupère et nettoie le texte d'une page web.
+    """
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'html.parser')
+        paragraphs = soup.find_all('p')
+        text = ' '.join([para.get_text() for para in paragraphs])
+        return text
+    except Exception as e:
+        print(f"Erreur lors de l'accès à {url}: {e}")
+        return ""
+
 # Initialiser une figure pour afficher plusieurs corpus
 plt.figure(figsize=(10, 6))
 
