@@ -20,9 +20,9 @@ To run this project, you need to have [Poetry](https://python-poetry.org/) insta
 ## Running the Project
 
 To run the project, use the following command:
- ```sh
-    cd projet_ia_info
-    ```
+```sh
+cd projet_ia_info
+```
 
 ```sh
 poetry run python main.py
