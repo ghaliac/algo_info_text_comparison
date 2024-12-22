@@ -43,5 +43,3 @@ poetry run generate_text.py
     ```sh
     poetry shell
     ```
-
-For more information on how to use Poetry, refer to the [official documentation](https://python-poetry.org/docs/).
