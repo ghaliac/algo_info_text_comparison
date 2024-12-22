@@ -23,6 +23,7 @@ To run the project, use the following command:
 ```sh
 poetry run python main.py
 ```
+For the synthetic text analysis, run the following command:
 ```sh
 poetry run generate_text.py
 ```
